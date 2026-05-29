@@ -1,6 +1,7 @@
 const db = require("../config/db");
 const DETALLE_EXCLUSION_TOKEN = "|EXCLUIDOS|";
 
+<<<<<<< HEAD
 
 const getMisPedidos = async (req, res) => {
   try {
@@ -32,6 +33,8 @@ const getMisPedidos = async (req, res) => {
 };
 
 
+=======
+>>>>>>> 126c75e9dc38470f5eb7c869017c6b6051c30e20
 function parseDetalleObservacion(observacion = "") {
   if (!observacion) return { nota: null, ingredientes_excluir: [] };
   const idx = observacion.indexOf(DETALLE_EXCLUSION_TOKEN);
@@ -226,7 +229,11 @@ async function descontarInventarioPedido(conn, id_pedido) {
 
 // POST /api/pedidos
 async function crearPedido(req, res) {
+<<<<<<< HEAD
   const { id_mesa,id_mesero, observacion, items } = req.body;
+=======
+  const { id_mesa, observacion, items } = req.body;
+>>>>>>> 126c75e9dc38470f5eb7c869017c6b6051c30e20
 
   // Validaciones de entrada
   if (!id_mesa) return res.status(400).json({ error: "La mesa es requerida" });
@@ -238,7 +245,11 @@ async function crearPedido(req, res) {
     if (!item.cantidad || item.cantidad < 1) return res.status(400).json({ error: "La cantidad debe ser mayor a 0" });
   }
 
+<<<<<<< HEAD
   const id_sede = req.body.id_sede || req.usuario.id_sede;
+=======
+  const id_sede = req.usuario.id_sede;
+>>>>>>> 126c75e9dc38470f5eb7c869017c6b6051c30e20
   const conn = await db.getConnection();
 
   try {
@@ -273,12 +284,20 @@ async function crearPedido(req, res) {
     await validarInventarioParaPedido(conn, items);
 
     // Obtener id_empleado del mesero
+<<<<<<< HEAD
    // Después:
 const [[empleado]] = await conn.query(
   "SELECT id_empleado FROM empleados WHERE id_usuario = ?",
   [id_mesero]
 );
 if (!empleado) throw new Error("El mesero asignado no tiene registro de empleado");
+=======
+    const [[empleado]] = await conn.query(
+      "SELECT id_empleado FROM empleados WHERE id_usuario = ?",
+      [req.usuario.id_usuario]
+    );
+    if (!empleado) throw new Error("El usuario no tiene registro de empleado");
+>>>>>>> 126c75e9dc38470f5eb7c869017c6b6051c30e20
 
     // Insertar pedido
     const [result] = await conn.query(
@@ -378,4 +397,8 @@ async function actualizarEstado(req, res) {
   }
 }
 
+<<<<<<< HEAD
 module.exports = { getPedidos, crearPedido, actualizarEstado, getMisPedidos };
+=======
+module.exports = { getPedidos, crearPedido, actualizarEstado };
+>>>>>>> 126c75e9dc38470f5eb7c869017c6b6051c30e20
