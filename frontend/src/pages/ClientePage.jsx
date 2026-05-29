@@ -3,6 +3,7 @@ import { useAuth } from "../context/AuthContext";
 import api from "../services/api";
 import TabReservas from "../components/shared/TabReservas";
 import MiniCalendar from "../components/shared/MiniCalendarComponent";
+import ModalPago from "../components/shared/ModalPago";
 
 
 const css = `
@@ -746,169 +747,193 @@ function TabMenu() {
 // TAB: MIS PEDIDOS
 // Tablas: pedidos + pedido_detalle + facturas (si ya tiene)
 // ─────────────────────────────────────────────────────────────────────────────
-function TabPedidos({ pedidos, cargando, onRecargar }) {
-  const [filtro, setFiltro] = useState("activos");
+  function TabPedidos({ pedidos, cargando, onRecargar }) {
+    const [filtro, setFiltro] = useState("activos");
+    const [pedidoPago, setPedidoPago] = useState(null);
 
-  const pedidosFilt = pedidos.filter(p =>
-    filtro === "activos"
-      ? !["entregado", "cancelado"].includes(p.estado)
-      : ["entregado", "cancelado"].includes(p.estado)
-  );
+    const pedidosFilt = pedidos.filter(p =>
+      filtro === "activos"
+        ? !["entregado", "cancelado"].includes(p.estado)
+        : ["entregado", "cancelado"].includes(p.estado)
+    );
 
-  if (cargando) return <CenteredSpinner />;
+    if (cargando) return <CenteredSpinner />;
 
-  return (
-    <div className="fade">
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
-        <h2 style={{ fontFamily: "'Playfair Display', serif", fontSize: 22 }}>Mis pedidos</h2>
-        <Btn variant="ghost" onClick={onRecargar} style={{ padding: "6px 14px", fontSize: 12 }}>
-          🔄 Actualizar
-        </Btn>
-      </div>
+    return (
+      <div className="fade">
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+          <h2 style={{ fontFamily: "'Playfair Display', serif", fontSize: 22 }}>Mis pedidos</h2>
+          <Btn variant="ghost" onClick={onRecargar} style={{ padding: "6px 14px", fontSize: 12 }}>
+            🔄 Actualizar
+          </Btn>
+        </div>
 
-      <div style={{ display: "flex", gap: 8, marginBottom: 20 }}>
-        {[{ id: "activos", label: "Activos" }, { id: "historial", label: "Historial" }].map(f => (
-          <button key={f.id} onClick={() => setFiltro(f.id)} style={{
-            background: filtro === f.id ? C.accent + "22" : C.surface,
-            color: filtro === f.id ? C.accent : C.muted,
-            border: `1px solid ${filtro === f.id ? C.accent + "66" : C.border}`,
-            borderRadius: 20, padding: "5px 14px", fontSize: 12, transition: "all .15s",
-          }}>{f.label}</button>
-        ))}
-      </div>
-
-      {pedidosFilt.length === 0
-        ? <Card style={{ textAlign: "center", padding: "40px 20px" }}>
-          <p style={{ color: C.muted }}>
-            {filtro === "activos" ? "No tienes pedidos activos 🎉" : "Aún no tienes historial de pedidos"}
-          </p>
-        </Card>
-        : <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-          {pedidosFilt.map((p, idx) => (
-            <Card key={p.id_pedido} style={{
-              borderColor: ESTADO_PEDIDO_COLOR[p.estado] + "55",
-              animationDelay: `${idx * 0.05}s`,
-            }}>
-              {/* Cabecera */}
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                  {p.estado === "listo" && (
-                    <span className="pulse" style={{
-                      width: 8, height: 8, borderRadius: "50%",
-                      background: C.success, display: "inline-block",
-                    }} />
-                  )}
-                  <span style={{ fontFamily: "'Playfair Display', serif", fontSize: 16 }}>
-                    Pedido #{p.id_pedido}
-                  </span>
-                  <Badge color={ESTADO_PEDIDO_COLOR[p.estado]}>
-                    {ESTADO_PEDIDO_ICON[p.estado]} {ESTADO_PEDIDO_LABEL[p.estado]}
-                  </Badge>
-                </div>
-                <div style={{ textAlign: "right" }}>
-                  <p style={{ fontSize: 11, color: C.muted }}>Mesa {p.mesa_numero}</p>
-                  <p style={{ fontSize: 11, color: C.muted }}>
-                    🕐 {new Date(p.creado_en).toLocaleTimeString("es-CO", { hour: "2-digit", minute: "2-digit" })}
-                  </p>
-                </div>
-              </div>
-
-              {/* Barra de progreso */}
-              {p.estado !== "cancelado" && (
-                <div style={{ display: "flex", gap: 4, marginBottom: 14 }}>
-                  {PASOS_PEDIDO.map((e, i) => {
-                    const idx = PASOS_PEDIDO.indexOf(p.estado);
-                    return (
-                      <div key={e} style={{ flex: 1, display: "flex", alignItems: "center", gap: 4 }}>
-                        <div style={{
-                          height: 4, flex: 1, borderRadius: 2,
-                          background: i <= idx ? ESTADO_PEDIDO_COLOR[e] : C.border,
-                          transition: "background .3s",
-                        }} />
-                        {i < PASOS_PEDIDO.length - 1 && (
-                          <div style={{
-                            width: 4, height: 4, borderRadius: "50%", flexShrink: 0,
-                            background: i < idx ? ESTADO_PEDIDO_COLOR[e] : C.border,
-                          }} />
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-
-              {/* Aviso "listo" */}
-              {p.estado === "listo" && (
-                <div style={{ marginBottom: 12 }}>
-                  <AlertBox color={C.success}>
-                    🎉 ¡Tu pedido está listo! El mesero vendrá a servirte en breve.
-                  </AlertBox>
-                </div>
-              )}
-
-              {/* Observación global del pedido */}
-              {p.observacion && (
-                <div style={{ marginBottom: 10 }}>
-                  <AlertBox color={C.danger}>⚠ {p.observacion}</AlertBox>
-                </div>
-              )}
-
-              {/* Items (pedido_detalle) */}
-              <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 10 }}>
-                {p.items?.map((it, i) => (
-                  <div key={i} style={{
-                    display: "flex", justifyContent: "space-between",
-                    padding: "7px 10px", background: C.surface, borderRadius: 8, fontSize: 13,
-                  }}>
-                    <div>
-                      <span style={{ fontWeight: 500 }}>{it.cantidad}×</span> {it.plato_nombre}
-                      {it.observacion && (
-                        <span style={{ fontSize: 11, color: C.muted, marginLeft: 8 }}>
-                          — {it.observacion}
-                        </span>
-                      )}
-                      {it.alergias_texto && (
-                        <span style={{ fontSize: 11, color: C.danger, marginLeft: 8 }}>
-                          ⚠ {it.alergias_texto}
-                        </span>
-                      )}
-                    </div>
-                    {it.precio_unitario && (
-                      <span style={{ color: C.accent, whiteSpace: "nowrap" }}>
-                        ${(it.cantidad * Number(it.precio_unitario)).toLocaleString("es-CO")}
-                      </span>
-                    )}
-                  </div>
-                ))}
-              </div>
-
-              {/* Factura (subtotal, IVA, propina, total) */}
-              {p.factura && (
-                <div style={{ paddingTop: 10, borderTop: `1px solid ${C.border}` }}>
-                  {[
-                    ["Subtotal", `$${Number(p.factura.subtotal).toLocaleString("es-CO")}`],
-                    [`IVA (${p.factura.iva_porcentaje}%)`, `$${Number(p.factura.iva_valor).toLocaleString("es-CO")}`],
-                    Number(p.factura.propina) > 0 && ["Propina", `$${Number(p.factura.propina).toLocaleString("es-CO")}`],
-                  ].filter(Boolean).map(([k, v]) => (
-                    <div key={k} style={{ display: "flex", justifyContent: "space-between", fontSize: 12, color: C.muted, marginBottom: 3 }}>
-                      <span>{k}</span><span>{v}</span>
-                    </div>
-                  ))}
-                  <div style={{ display: "flex", justifyContent: "space-between", marginTop: 6 }}>
-                    <span style={{ fontSize: 13, fontWeight: 500 }}>Total pagado</span>
-                    <span style={{ fontFamily: "'Playfair Display', serif", fontSize: 18, color: C.accent }}>
-                      ${Number(p.factura.total).toLocaleString("es-CO")}
-                    </span>
-                  </div>
-                </div>
-              )}
-            </Card>
+        <div style={{ display: "flex", gap: 8, marginBottom: 20 }}>
+          {[{ id: "activos", label: "Activos" }, { id: "historial", label: "Historial" }].map(f => (
+            <button key={f.id} onClick={() => setFiltro(f.id)} style={{
+              background: filtro === f.id ? C.accent + "22" : C.surface,
+              color: filtro === f.id ? C.accent : C.muted,
+              border: `1px solid ${filtro === f.id ? C.accent + "66" : C.border}`,
+              borderRadius: 20, padding: "5px 14px", fontSize: 12, transition: "all .15s",
+            }}>{f.label}</button>
           ))}
         </div>
-      }
-    </div>
-  );
-}
+
+        {pedidosFilt.length === 0
+          ? <Card style={{ textAlign: "center", padding: "40px 20px" }}>
+            <p style={{ color: C.muted }}>
+              {filtro === "activos" ? "No tienes pedidos activos 🎉" : "Aún no tienes historial de pedidos"}
+            </p>
+          </Card>
+          : <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+            {pedidosFilt.map((p, idx) => (
+              <Card key={p.id_pedido} style={{
+                borderColor: ESTADO_PEDIDO_COLOR[p.estado] + "55",
+                animationDelay: `${idx * 0.05}s`,
+              }}>
+                {/* Cabecera */}
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                    {p.estado === "listo" && (
+                      <span className="pulse" style={{
+                        width: 8, height: 8, borderRadius: "50%",
+                        background: C.success, display: "inline-block",
+                      }} />
+                    )}
+                    <span style={{ fontFamily: "'Playfair Display', serif", fontSize: 16 }}>
+                      Pedido #{p.id_pedido}
+                    </span>
+                    <Badge color={ESTADO_PEDIDO_COLOR[p.estado]}>
+                      {ESTADO_PEDIDO_ICON[p.estado]} {ESTADO_PEDIDO_LABEL[p.estado]}
+                    </Badge>
+                  </div>
+                  <div style={{ textAlign: "right" }}>
+                    <p style={{ fontSize: 11, color: C.muted }}>Mesa {p.mesa_numero}</p>
+                    <p style={{ fontSize: 11, color: C.muted }}>
+                      🕐 {new Date(p.creado_en).toLocaleTimeString("es-CO", { hour: "2-digit", minute: "2-digit" })}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Barra de progreso */}
+                {p.estado !== "cancelado" && (
+                  <div style={{ display: "flex", gap: 4, marginBottom: 14 }}>
+                    {PASOS_PEDIDO.map((e, i) => {
+                      const idx = PASOS_PEDIDO.indexOf(p.estado);
+                      return (
+                        <div key={e} style={{ flex: 1, display: "flex", alignItems: "center", gap: 4 }}>
+                          <div style={{
+                            height: 4, flex: 1, borderRadius: 2,
+                            background: i <= idx ? ESTADO_PEDIDO_COLOR[e] : C.border,
+                            transition: "background .3s",
+                          }} />
+                          {i < PASOS_PEDIDO.length - 1 && (
+                            <div style={{
+                              width: 4, height: 4, borderRadius: "50%", flexShrink: 0,
+                              background: i < idx ? ESTADO_PEDIDO_COLOR[e] : C.border,
+                            }} />
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {/* Aviso "listo" */}
+                {p.estado === "listo" && (
+                  <div style={{ marginBottom: 12 }}>
+                    <AlertBox color={C.success}>
+                      🎉 ¡Tu pedido está listo! El mesero vendrá a servirte en breve.
+                    </AlertBox>
+                  </div>
+                )}
+
+                {/* Botón pagar */}
+                {p.estado === "listo" && !p.factura && (
+                  <button
+                    onClick={() => setPedidoPago(p)}
+                    style={{
+                      width: "100%", padding: "11px 0", borderRadius: 8,
+                      background: C.accent, color: "#0f0e0c", border: "none",
+                      fontSize: 14, fontWeight: 600, cursor: "pointer", marginBottom: 12,
+                    }}
+                  >
+                    💳 Pagar ahora
+                  </button>
+                )}
+
+                {/* Observación global del pedido */}
+                {p.observacion && (
+                  <div style={{ marginBottom: 10 }}>
+                    <AlertBox color={C.danger}>⚠ {p.observacion}</AlertBox>
+                  </div>
+                )}
+
+                {/* Items (pedido_detalle) */}
+                <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 10 }}>
+                  {p.items?.map((it, i) => (
+                    <div key={i} style={{
+                      display: "flex", justifyContent: "space-between",
+                      padding: "7px 10px", background: C.surface, borderRadius: 8, fontSize: 13,
+                    }}>
+                      <div>
+                        <span style={{ fontWeight: 500 }}>{it.cantidad}×</span> {it.plato_nombre}
+                        {it.observacion && (
+                          <span style={{ fontSize: 11, color: C.muted, marginLeft: 8 }}>
+                            — {it.observacion}
+                          </span>
+                        )}
+                        {it.alergias_texto && (
+                          <span style={{ fontSize: 11, color: C.danger, marginLeft: 8 }}>
+                            ⚠ {it.alergias_texto}
+                          </span>
+                        )}
+                      </div>
+                      {it.precio_unitario && (
+                        <span style={{ color: C.accent, whiteSpace: "nowrap" }}>
+                          ${(it.cantidad * Number(it.precio_unitario)).toLocaleString("es-CO")}
+                        </span>
+                      )}
+                    </div>
+                  ))}
+                </div>
+
+                {/* Factura (subtotal, IVA, propina, total) */}
+                {p.factura && (
+                  <div style={{ paddingTop: 10, borderTop: `1px solid ${C.border}` }}>
+                    {[
+                      ["Subtotal", `$${Number(p.factura.subtotal).toLocaleString("es-CO")}`],
+                      [`IVA (${p.factura.iva_porcentaje}%)`, `$${Number(p.factura.iva_valor).toLocaleString("es-CO")}`],
+                      Number(p.factura.propina) > 0 && ["Propina", `$${Number(p.factura.propina).toLocaleString("es-CO")}`],
+                    ].filter(Boolean).map(([k, v]) => (
+                      <div key={k} style={{ display: "flex", justifyContent: "space-between", fontSize: 12, color: C.muted, marginBottom: 3 }}>
+                        <span>{k}</span><span>{v}</span>
+                      </div>
+                    ))}
+                    <div style={{ display: "flex", justifyContent: "space-between", marginTop: 6 }}>
+                      <span style={{ fontSize: 13, fontWeight: 500 }}>Total pagado</span>
+                      <span style={{ fontFamily: "'Playfair Display', serif", fontSize: 18, color: C.accent }}>
+                        ${Number(p.factura.total).toLocaleString("es-CO")}
+                      </span>
+                    </div>
+                  </div>
+                )}
+
+                {/* Modal de pago */}
+                {pedidoPago?.id_pedido === p.id_pedido && (
+                  <ModalPago
+                    pedido={pedidoPago}
+                    onClose={() => setPedidoPago(null)}
+                    onPagado={() => { setPedidoPago(null); onRecargar(); }}
+                  />
+                )}
+              </Card>
+            ))}
+          </div>
+        }
+      </div>
+    );
+  }
 
 // ─────────────────────────────────────────────────────────────────────────────
 // TAB: RESERVAS → Componente compartido en components/shared/TabReservas.jsx

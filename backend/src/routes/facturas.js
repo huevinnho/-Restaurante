@@ -10,5 +10,6 @@ router.use(verificarToken);
 router.get("/mis-facturas", getMisFacturas);
 router.get("/",             soloRoles("super_admin", "admin_general", "admin_punto"), getFacturas);
 router.post("/",            soloRoles("admin_punto", "mesero"), crearFactura);
+pagarPedido:    (data)    => request("POST", "/facturas/pagar", data),
 
 module.exports = router;
