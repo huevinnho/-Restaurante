@@ -3,30 +3,46 @@ const DETALLE_EXCLUSION_TOKEN = "|EXCLUIDOS|";
 
 const getMisPedidos = async (req, res) => {
   try {
+    const [[cliente]] = await db.query(
+      "SELECT id_cliente FROM clientes WHERE id_usuario = ?",
+      [req.usuario.id_usuario]
+    );
+    if (!cliente) return res.json([]);
+
     const [pedidos] = await db.query(
-      `SELECT p.*, m.numero AS mesa_numero,
-              JSON_ARRAYAGG(
-                JSON_OBJECT(
-                  'id_plato', pd.id_plato,
-                  'plato_nombre', pl.nombre,
-                  'cantidad', pd.cantidad,
-                  'precio_unitario', pd.precio_unitario,
-                  'observacion', pd.observacion,
-                  'alergias_texto', pd.alergias_texto
-                )
-              ) AS items
+      `SELECT p.id_pedido, p.id_mesa, p.id_sede, p.estado, p.observacion, p.creado_en,
+              m.numero AS mesa_numero
        FROM pedidos p
        JOIN mesas m ON p.id_mesa = m.id_mesa
-       JOIN pedido_detalle pd ON p.id_pedido = pd.id_pedido
-       JOIN platos pl ON pd.id_plato = pl.id_plato
        WHERE p.id_cliente = ?
-       GROUP BY p.id_pedido
        ORDER BY p.creado_en DESC`,
-      [req.user.id]
+      [cliente.id_cliente]
     );
-    res.json(pedidos);
+
+    for (const pedido of pedidos) {
+      const [detalle] = await db.query(
+        `SELECT pd.id_detalle, pd.id_plato, pd.cantidad,
+                pd.observacion, pd.alergias_texto,
+                pl.nombre AS plato_nombre, pl.precio AS precio_unitario
+         FROM pedido_detalle pd
+         JOIN platos pl ON pl.id_plato = pd.id_plato
+         WHERE pd.id_pedido = ?`,
+        [pedido.id_pedido]
+      );
+      pedido.items = detalle;
+
+      const [[factura]] = await db.query(
+        `SELECT id_factura, subtotal, iva_porcentaje, iva_valor, propina, total, fecha_emision
+         FROM facturas WHERE id_pedido = ?`,
+        [pedido.id_pedido]
+      );
+      pedido.factura = factura || null;
+    }
+
+    return res.json(pedidos);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error(err);
+    return res.status(500).json({ error: err.message });
   }
 };
 
@@ -225,8 +241,24 @@ async function descontarInventarioPedido(conn, id_pedido) {
 
 // POST /api/pedidos
 async function crearPedido(req, res) {
+  console.log("ROL USUARIO:", req.usuario?.rol);
+  console.log("ID USUARIO:", req.usuario?.id_usuario);
+  // ... resto del código
+  
 
-  const { id_mesa,id_mesero, observacion, items } = req.body;
+  const { id_mesa, id_mesero, observacion, items } = req.body;
+
+  
+
+// Obtener id_cliente del usuario autenticado (si es cliente)
+let id_cliente = null;
+if (req.usuario?.rol === "cliente") {
+  const [[cli]] = await db.query(
+    "SELECT id_cliente FROM clientes WHERE id_usuario = ?",
+    [req.usuario.id_usuario]
+  );
+  id_cliente = cli?.id_cliente ?? null;
+}
 
   // Validaciones de entrada
   if (!id_mesa) return res.status(400).json({ error: "La mesa es requerida" });
@@ -285,9 +317,9 @@ if (!empleado) throw new Error("El mesero asignado no tiene registro de empleado
 
     // Insertar pedido
     const [result] = await conn.query(
-      `INSERT INTO pedidos (id_mesa, id_mesero, id_sede, estado, observacion)
-       VALUES (?, ?, ?, 'pendiente', ?)`,
-      [id_mesa, empleado.id_empleado, id_sede, observacion || null]
+      `INSERT INTO pedidos (id_mesa, id_mesero, id_sede, estado, observacion, id_cliente)
+ VALUES (?, ?, ?, 'pendiente', ?, ?)`,
+[id_mesa, empleado.id_empleado, id_sede, observacion || null, id_cliente]
     );
     const id_pedido = result.insertId;
 

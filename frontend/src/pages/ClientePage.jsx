@@ -6,6 +6,7 @@ import MiniCalendar from "../components/shared/MiniCalendarComponent";
 import ModalPago from "../components/shared/ModalPago";
 
 
+
 const css = `
   @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;700&family=DM+Sans:wght@300;400;500&display=swap');
   * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -1581,6 +1582,7 @@ export default function ClientePage() {
           {tab === "historial" && <TabFacturas />}
           {tab === "encuestas" && <TabEncuestas />}
           {tab === "perfil" && <TabPerfil />}
+          
         </div>
       </div>
     </>

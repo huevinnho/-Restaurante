@@ -57,7 +57,7 @@ const api = {
 
   // ── Facturas ──────────────────────────────────────────────
   getFacturas:  (id_sede) => request("GET",  id_sede ? `/facturas?id_sede=${id_sede}` : "/facturas"),
-  getMisFacturas: ()    => request("GET",  "/facturas/mis-facturas"),
+  getMisFacturas: () => request("GET", "/facturas/mis-facturas-cliente"),
   crearFactura: (data) => request("POST", "/facturas", data),
 
   // ── Reservas ──────────────────────────────────────────────

@@ -19,19 +19,19 @@ const Spinner = ({ size = 14 }) => (
 // ─── Métodos de pago disponibles ─────────────────────────────────────────────
 const METODOS = [
   {
-    id: "Efectivo",
+    id: "efectivo",       // ← antes era "Efectivo"
     label: "Efectivo",
     icon: "💵",
     desc: "Pagas en caja o al mesero al recibir tu pedido.",
   },
   {
-    id: "Tarjeta",
+    id: "tarjeta",        // ← antes era "Tarjeta"
     label: "Tarjeta",
     icon: "💳",
     desc: "Débito o crédito. El datáfono se acerca a tu mesa.",
   },
   {
-    id: "App móvil",
+    id: "app_movil",      // ← antes era "App móvil"
     label: "App móvil",
     icon: "📱",
     desc: "Nequi, Daviplata, Bancolombia u otra app de pagos.",

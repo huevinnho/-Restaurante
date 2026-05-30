@@ -285,7 +285,7 @@ function TabSedes() {
       ) : (
         <div style={{ display: "grid", gap: 12 }}>
           {sedes.map((sede) => (
-            <Card key={sede.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <Card key={sede.id_sede} style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <div>
                 <div style={{ fontWeight: 600, marginBottom: 4 }}>{sede.nombre}</div>
                 <div style={{ fontSize: 13, color: C.muted }}>
